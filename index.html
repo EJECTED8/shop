@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Парфюмерия</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="fonts.css?v=1">
+  <script>
+    // версия из адреса (бот подставляет ?v=…) — пробрасываем на файлы, чтобы Telegram не кэшировал старое
+    window.__V = new URLSearchParams(location.search).get("v") || String(Date.now());
+    document.write('<link rel="stylesheet" href="styles.css?v=' + window.__V + '">');
+  </script>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header-inner">
+        <h1 id="shopTitle">Парфюмерия</h1>
+        <div class="rule"></div>
+        <p id="shopSubtitle"></p>
+      </div>
+    </header>
+
+    <div class="controls">
+      <div class="search">
+        <input id="searchInput" type="search" inputmode="search" placeholder="Поиск: бренд, название, нота…" autocomplete="off" />
+        <button id="searchClear" type="button" aria-label="Очистить">&times;</button>
+      </div>
+      <select id="brandFilter" class="brand-select" aria-label="Бренд">
+        <option value="все">Все бренды</option>
+      </select>
+      <div class="controls-row">
+        <div class="filters" id="filters"></div>
+        <button class="icon-toggle" id="favToggle" title="Избранное" aria-label="Избранное">
+          <svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-10-9.3C.6 8.9 2 5.5 5.2 5.1 7 4.9 8.7 5.9 12 8c3.3-2.1 5-3.1 6.8-2.9 3.2.4 4.6 3.8 3.2 6.6C19.5 16.4 12 21 12 21z"/></svg>
+        </button>
+        <div class="viewtoggle" role="group" aria-label="Вид">
+          <button class="vt active" data-view="list" title="Список" aria-label="Список">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+          </button>
+          <button class="vt" data-view="grid" title="Сетка" aria-label="Сетка">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.2"/><rect x="13" y="4" width="7" height="7" rx="1.2"/><rect x="4" y="13" width="7" height="7" rx="1.2"/><rect x="13" y="13" width="7" height="7" rx="1.2"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <main class="grid view-list" id="grid"></main>
+
+    <button class="request-cta" id="promoCta">🎟 Реферальная программа — твой промокод и скидка 15%</button>
+    <button class="request-cta" id="requestCta">Не нашли нужный аромат? Оставить заявку →</button>
+  </div>
+
+  <div class="overlay" id="promoOverlay">
+    <div class="sheet">
+      <button class="sheet-close" id="promoClose">&times;</button>
+      <h2>Твой промокод</h2>
+      <p class="request-lead">Придумай код и делись с друзьями. Как только по нему сделают <b>5 заказов</b> — тебе откроется <b>постоянная скидка 15%</b> на все твои заказы.</p>
+      <div class="field"><label>Придумай свой код</label><input id="p_code" type="text" placeholder="напр. SNIFF" maxlength="20" /></div>
+      <button class="submit" id="promoCreate">Создать промокод</button>
+      <p class="request-lead" style="margin-top:16px;">Проверить прогресс в любой момент — команда <b>/promo</b> в чате с ботом.</p>
+    </div>
+  </div>
+
+  <div class="overlay" id="requestOverlay">
+    <div class="sheet">
+      <button class="sheet-close" id="requestClose">&times;</button>
+      <h2>Заявка на аромат</h2>
+      <p class="request-lead">Напишите, какой флакон нужен — подберём и сообщим цену.</p>
+      <div class="field" data-rreq="1"><label>Какой аромат нужен? *</label><input id="r_fragrance" type="text" placeholder="Бренд и название" /></div>
+      <div class="field"><label>Имя</label><input id="r_name" type="text" placeholder="Как к вам обращаться" /></div>
+      <div class="field" data-rreq="1"><label>Телефон или @username *</label><input id="r_contact" type="text" placeholder="+7 999 000-00-00 или @username" /></div>
+      <div class="field"><label>Комментарий</label><textarea id="r_comment" placeholder="Объём, пожелания…"></textarea></div>
+      <button class="submit" id="requestSubmit">Отправить заявку</button>
+    </div>
+  </div>
+
+  <div class="cartbar" id="cartbar">
+    <span>Оформить заказ</span>
+    <span class="count-badge" id="cartSummary">0 · 0 ₽</span>
+  </div>
+
+  <div class="overlay" id="productOverlay">
+    <div class="sheet product-sheet">
+      <button class="sheet-close" id="productClose">&times;</button>
+      <div id="productContent"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="sheet">
+      <button class="sheet-close" id="sheetClose">&times;</button>
+      <h2>Ваш заказ</h2>
+      <div id="orderLines"></div>
+      <div class="order-total"><span>Итого</span><span class="sum" id="orderTotal">0 ₽</span></div>
+
+      <div class="field" data-req="1"><label>Имя *</label><input id="f_name" type="text" placeholder="Как к вам обращаться" /></div>
+      <div class="field" data-req="1"><label>Телефон *</label><input id="f_phone" type="tel" placeholder="+7 999 000-00-00" /></div>
+      <div class="field"><label>Ваш @username в Telegram</label><input id="f_username" type="text" placeholder="@username" /></div>
+      <div class="field" data-req="1"><label>Город *</label><input id="f_city" type="text" placeholder="Город" /></div>
+      <div class="field">
+        <label>Способ доставки</label>
+        <select id="f_delivery">
+          <option>Курьер по городу</option>
+          <option>СДЭК</option>
+          <option>Почта России</option>
+        </select>
+      </div>
+      <div class="field"><label>Адрес доставки</label><input id="f_address" type="text" placeholder="Улица, дом" /></div>
+      <div id="courierFields">
+        <div class="field-row">
+          <div class="field"><label>Подъезд</label><input id="f_entrance" type="text" inputmode="numeric" placeholder="№" /></div>
+          <div class="field"><label>Этаж</label><input id="f_floor" type="text" inputmode="numeric" placeholder="№" /></div>
+          <div class="field"><label>Квартира</label><input id="f_flat" type="text" inputmode="numeric" placeholder="№" /></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Способ связи</label>
+        <select id="f_contact">
+          <option>Telegram</option>
+          <option>Звонок</option>
+          <option>WhatsApp</option>
+        </select>
+      </div>
+      <div class="field"><label>Комментарий</label><textarea id="f_comment" placeholder="Пожелания к заказу"></textarea></div>
+      <div class="field"><label>Промокод друга (необязательно)</label><input id="f_promo" type="text" placeholder="Код друга — зачтётся ему" /></div>
+
+      <button class="submit" id="submitBtn">Отправить заказ</button>
+    </div>
+  </div>
+
+  <div class="wash" id="wash" aria-hidden="true"></div>
+
+  <script>
+    (function () {
+      var s = document.createElement("script");
+      s.src = "app.js?v=" + window.__V;
+      document.body.appendChild(s);
+    })();
+  </script>
+</body>
+</html>
