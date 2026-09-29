@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Админка каталога · Sniff Twice</title>
+<style>
+  :root {
+    --bg: #f4f5f8; --card: #ffffff; --text: #1c1d22; --hint: #8a8d98;
+    --line: #e6e8ee; --btn: #2f6fed; --btn-text: #fff; --danger: #e0483d;
+    --ok: #22a06b; --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 15px; line-height: 1.45; padding-bottom: 90px;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 20px 16px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--hint); font-size: 13px; margin-bottom: 18px; }
+
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+  .panel h2 { font-size: 15px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--hint); }
+
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .field { margin: 8px 0; flex: 1 1 200px; min-width: 0; }
+  .field.full { flex-basis: 100%; }
+  .field.sm { flex: 0 0 120px; }
+  label { display: block; font-size: 12px; color: var(--hint); margin-bottom: 4px; }
+  input, textarea, select {
+    width: 100%; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--line);
+    background: #fff; color: var(--text); font-size: 14px; font-family: inherit;
+  }
+  input:focus, textarea:focus, select:focus { outline: 2px solid var(--btn); border-color: transparent; }
+  textarea { resize: vertical; min-height: 54px; }
+
+  .prod { position: relative; }
+  .prod-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+  .prod-title { font-weight: 700; font-size: 16px; }
+  .prod-title .mut { color: var(--hint); font-weight: 400; }
+  .prod-tools { display: flex; gap: 6px; }
+
+  button { cursor: pointer; font-family: inherit; }
+  .btn { border: none; background: var(--btn); color: var(--btn-text); border-radius: 10px; padding: 9px 16px; font-size: 14px; font-weight: 600; }
+  .btn.ghost { background: #eef1f7; color: var(--text); }
+  .btn.danger { background: #fdecea; color: var(--danger); }
+  .icon-btn { border: 1px solid var(--line); background: #fff; color: var(--hint); border-radius: 8px; width: 30px; height: 30px; font-size: 15px; line-height: 1; }
+  .icon-btn.danger { color: var(--danger); border-color: #f6cfcb; }
+
+  .variants { margin-top: 6px; }
+  .variant-row { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 6px; }
+  .variant-row .field { margin: 0; }
+  .variant-row .grow { flex: 1 1 auto; }
+
+  .add-prod { border: 2px dashed var(--line); background: transparent; color: var(--btn); width: 100%; padding: 14px; border-radius: var(--radius); font-size: 15px; font-weight: 600; }
+
+  .bar {
+    position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid var(--line);
+    padding: 12px 16px; display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;
+  }
+  .bar .status { font-size: 13px; margin-right: auto; }
+  .bar .status.ok { color: var(--ok); }
+  .bar .status.err { color: var(--danger); }
+
+  .preorder-toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; padding: 10px 12px; background: #fff7e6; border: 1px solid #ffe0a3; border-radius: 10px; width: 100%; }
+  .preorder-toggle input { width: 18px; height: 18px; flex: 0 0 auto; cursor: pointer; }
+  .preorder-toggle span { color: #7a5b12; }
+
+  .photo-row { display: flex; gap: 12px; align-items: center; }
+  .photo-preview { width: 84px; height: 84px; flex: 0 0 auto; border-radius: 10px; border: 1px solid var(--line); background: #f0f2f6; overflow: hidden; display: flex; align-items: center; justify-content: center; color: var(--hint); font-size: 12px; text-align: center; }
+  .photo-preview img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .hidden { display: none; }
+  body.locked .panel:not(#tokenPanel), body.locked #products, body.locked .add-prod,
+  body.locked .bar, body.locked details.json { display: none; }
+  .btn:disabled { opacity: .6; cursor: default; }
+  .hint-line { font-size: 12px; color: var(--hint); margin-top: 4px; }
+  details.json { margin-top: 8px; }
+  details.json pre { background: #0f1117; color: #d5d9e2; padding: 12px; border-radius: 10px; overflow: auto; font-size: 12px; max-height: 320px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Админка каталога</h1>
+  <div class="sub">Работает с любого устройства. Нажми <b>«Опубликовать»</b> — каталог в боте обновится примерно через минуту.</div>
+
+  <div class="panel" id="tokenPanel">
+    <h2>Ключ доступа</h2>
+    <div class="row">
+      <div class="field full"><label>GitHub-ключ (github_pat_…) — вводится один раз на этом устройстве</label>
+        <input id="ghToken" type="password" autocomplete="off" placeholder="github_pat_..." /></div>
+    </div>
+    <div class="row">
+      <button class="btn" id="tokenSave">Войти</button>
+      <button class="btn ghost hidden" id="tokenForget">Выйти (забыть ключ)</button>
+    </div>
+    <div class="hint-line" id="tokenInfo">Ключ хранится только в этом браузере.</div>
+  </div>
+
+  <div class="panel">
+    <h2>Магазин</h2>
+    <div class="row">
+      <div class="field"><label>Название магазина</label><input id="shopTitle" type="text" /></div>
+      <div class="field full"><label>Подзаголовок</label><input id="shopSubtitle" type="text" /></div>
+    </div>
+    <div class="row">
+      <button class="btn ghost" id="loadBtn">🔄 Загрузить заново с сайта</button>
+    </div>
+    <div class="hint-line">Каталог подгружается с сайта автоматически после входа.</div>
+  </div>
+
+  <div id="products"></div>
+
+  <button class="add-prod" id="addProd">＋ Добавить товар</button>
+
+  <details class="json">
+    <summary style="cursor:pointer;color:var(--hint);font-size:13px;margin-top:14px;">Показать итоговый JSON</summary>
+    <pre id="jsonPreview"></pre>
+  </details>
+</div>
+
+<div class="bar">
+  <span class="status" id="status"></span>
+  <button class="btn ghost" id="downloadBtn">Скачать копию</button>
+  <button class="btn" id="publishBtn">🚀 Опубликовать</button>
+</div>
+
+<script>
+const GENDERS = ["муж", "жен", "унисекс"];
+
+/* ---------- GitHub: сохранение прямо в репозиторий сайта ---------- */
+const REPO = "EJECTED8/shop", BRANCH = "main", TOKEN_KEY = "sniff_admin_token";
+const previewCache = {};   // путь фото -> dataURL (пока GitHub Pages не пересобрался)
+
+function getToken(){ try { return localStorage.getItem(TOKEN_KEY) || ""; } catch(e){ return ""; } }
+function setToken(t){ try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch(e){} }
+
+function utf8ToB64(s){
+  const bytes = new TextEncoder().encode(s);
+  let bin = ""; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+function b64ToUtf8(b64){
+  const bin = atob(b64.replace(/\s/g, ""));
+  const bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+async function gh(path, opts = {}){
+  const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
+    ...opts,
+    headers: { "Authorization": "Bearer " + getToken(), "Accept": "application/vnd.github+json", ...(opts.headers||{}) },
+    cache: "no-store",
+  });
+  const j = await res.json().catch(()=>({}));
+  if (!res.ok){
+    const msg = res.status === 401 ? "ключ неверный или истёк"
+              : res.status === 403 || res.status === 404 ? "у ключа нет доступа к репозиторию shop (нужно Contents: Read and write)"
+              : res.status === 409 ? "каталог успел измениться на другом устройстве — нажми «Загрузить заново с сайта»"
+              : (j.message || res.status);
+    throw new Error(msg);
+  }
+  return j;
+}
+async function ghGet(path){
+  const j = await gh(`${path}?ref=${BRANCH}&t=${Date.now()}`);
+  return { text: b64ToUtf8(j.content), sha: j.sha };
+}
+async function ghPut(path, b64, message, sha){
+  const body = { message, content: b64, branch: BRANCH }; if (sha) body.sha = sha;
+  return gh(path, { method: "PUT", body: JSON.stringify(body) });
+}
+
+// сжимаем фото до 1200px по длинной стороне, JPEG — с телефона приходят снимки по 3–8 МБ
+function resizeImage(file, maxSide = 1200, quality = 0.82){
+  return new Promise((resolve, reject)=>{
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = ()=>{
+      const k = Math.min(1, maxSide / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      const ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); reject(new Error("не удалось прочитать фото")); };
+    img.src = url;
+  });
+}
+function imgSrc(path){ return previewCache[path] || ("../" + path); }
+let catalogSha = null;
+
+let model = {
+  shop: { title: "Парфюмерия", subtitle: "Оригинальная и нишевая парфюмерия · отливанты и полные флаконы" },
+  products: []
+};
+
+/* ---------- translit для авто-id ---------- */
+const MAP = {а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'e',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'h',ц:'ts',ч:'ch',ш:'sh',щ:'sch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya',' ':'-'};
+function slug(s){
+  return (s||"").toLowerCase().split("").map(c=>MAP[c]!==undefined?MAP[c]:c).join("")
+    .replace(/[^a-z0-9-]/g,"-").replace(/-+/g,"-").replace(/^-|-$/g,"");
+}
+function autoId(p){
+  const base = slug(p.brand + " " + p.name) || "item";
+  let id = base, n = 2;
+  while (model.products.some(x => x !== p && x.id === id)) { id = base + "-" + n; n++; }
+  return id;
+}
+
+/* ---------- рендер ---------- */
+function blankProduct(){
+  return { id:"", brand:"", name:"", gender:"унисекс", notesTop:[], notesHeart:[], notesBase:[], description:"", image:"", preorder:false,
+    variants:[ { volume:"", unit:"мл", price:"" } ] };
+}
+
+function render(){
+  document.getElementById("shopTitle").value = model.shop.title || "";
+  document.getElementById("shopSubtitle").value = model.shop.subtitle || "";
+
+  const box = document.getElementById("products");
+  box.innerHTML = "";
+  model.products.forEach((p, pi) => box.appendChild(renderProduct(p, pi)));
+  updateJson();
+}
+
+function renderProduct(p, pi){
+  const el = document.createElement("div");
+  el.className = "panel prod";
+  el.innerHTML = `
+    <div class="prod-head">
+      <div class="prod-title">#${pi+1} <span class="mut">${escapeHtml(p.brand)} ${escapeHtml(p.name)}</span></div>
+      <div class="prod-tools">
+        <button class="icon-btn" data-act="up" title="Выше">↑</button>
+        <button class="icon-btn" data-act="down" title="Ниже">↓</button>
+        <button class="icon-btn" data-act="dup" title="Дублировать">⧉</button>
+        <button class="icon-btn danger" data-act="del" title="Удалить">✕</button>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Бренд *</label><input data-f="brand" type="text" value="${escapeAttr(p.brand)}" /></div>
+      <div class="field"><label>Название *</label><input data-f="name" type="text" value="${escapeAttr(p.name)}" /></div>
+      <div class="field sm"><label>Пол</label><select data-f="gender">${GENDERS.map(g=>`<option ${g===p.gender?'selected':''}>${g}</option>`).join("")}</select></div>
+    </div>
+    <div class="row">
+      <div class="field full"><label>Верхние ноты (через запятую)</label><input data-f="notesTop" type="text" value="${escapeAttr((p.notesTop||[]).join(', '))}" placeholder="бергамот, лимон" /></div>
+    </div>
+    <div class="row">
+      <div class="field full"><label>Ноты сердца (через запятую)</label><input data-f="notesHeart" type="text" value="${escapeAttr((p.notesHeart||[]).join(', '))}" placeholder="жасмин, роза" /></div>
+    </div>
+    <div class="row">
+      <div class="field full"><label>Базовые ноты (через запятую)</label><input data-f="notesBase" type="text" value="${escapeAttr((p.notesBase||[]).join(', '))}" placeholder="сандал, ваниль, мускус" /></div>
+    </div>
+    <div class="row">
+      <div class="field full"><label>Описание</label><textarea data-f="description">${escapeHtml(p.description||"")}</textarea></div>
+    </div>
+    <div class="row">
+      <div class="field full">
+        <label>Фото товара</label>
+        <div class="photo-row">
+          <div class="photo-preview">${p.image ? `<img src="${escapeAttr(imgSrc(p.image))}" alt="" />` : '<span>нет фото</span>'}</div>
+          <div class="photo-actions">
+            <button type="button" class="btn ghost" data-act="photo">${p.image ? 'Заменить фото' : 'Загрузить фото'}</button>
+            ${p.image ? '<button type="button" class="btn danger" data-act="photodel">Убрать</button>' : ''}
+            <input type="file" accept="image/*" data-photoinput class="hidden" />
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <label class="preorder-toggle">
+        <input data-f="preorder" type="checkbox" ${p.preorder ? 'checked' : ''} />
+        <span>Предзаказ — товара сейчас нет в наличии (в витрине покажется плашка «Предзаказ»)</span>
+      </label>
+    </div>
+    <div class="variants">
+      <label>Объёмы и цены *</label>
+      <div class="variant-list"></div>
+      <button class="btn ghost" data-act="addvar" style="margin-top:4px;padding:6px 12px;font-size:13px;">＋ Объём</button>
+    </div>
+  `;
+
+  // товарные поля
+  el.querySelectorAll('[data-f]').forEach(inp=>{
+    inp.addEventListener("input", ()=>{
+      const f = inp.dataset.f;
+      if (f === "notesTop" || f === "notesHeart" || f === "notesBase")
+        p[f] = inp.value.split(",").map(s=>s.trim()).filter(Boolean);
+      else if (f === "preorder") p.preorder = inp.checked;
+      else p[f] = inp.value;
+      // обновить заголовок и json без полного ререндера
+      el.querySelector(".prod-title .mut").textContent = (p.brand||"") + " " + (p.name||"");
+      updateJson();
+    });
+  });
+
+  // варианты
+  const vlist = el.querySelector(".variant-list");
+  (p.variants||[]).forEach((v, vi)=> vlist.appendChild(renderVariant(p, v, vi)));
+
+  // кнопки
+  el.querySelectorAll('[data-act]').forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const act = btn.dataset.act;
+      if (act==="del"){ if(confirm("Удалить товар?")){ model.products.splice(pi,1); render(); } }
+      else if (act==="up" && pi>0){ [model.products[pi-1],model.products[pi]]=[model.products[pi],model.products[pi-1]]; render(); }
+      else if (act==="down" && pi<model.products.length-1){ [model.products[pi+1],model.products[pi]]=[model.products[pi],model.products[pi+1]]; render(); }
+      else if (act==="dup"){ const copy=JSON.parse(JSON.stringify(p)); copy.id=""; model.products.splice(pi+1,0,copy); render(); }
+      else if (act==="addvar"){ p.variants.push({volume:"",unit:"мл",price:""}); render(); }
+      else if (act==="photo"){ el.querySelector('[data-photoinput]').click(); }
+      else if (act==="photodel"){ p.image=""; render(); }
+    });
+  });
+
+  // загрузка фото файлом
+  const photoInput = el.querySelector('[data-photoinput]');
+  if (photoInput) photoInput.addEventListener("change", ()=>{
+    const file = photoInput.files[0];
+    if (!file) return;
+    const st = document.getElementById("status");
+    const btn = el.querySelector('[data-act="photo"]');
+    (async ()=>{
+      try {
+        btn.disabled = true; btn.textContent = "Загружаю…";
+        st.textContent = "Сжимаю и загружаю фото…"; st.className = "status";
+        const dataUrl = await resizeImage(file);
+        const base = (slug(file.name.replace(/\.[^.]+$/, "")) || "photo").slice(0, 40);
+        const path = `images/${Math.floor(Date.now()/1000)}_${base}.jpg`;
+        await ghPut(path, dataUrl.split(",")[1], "admin: photo " + path);
+        previewCache[path] = dataUrl;
+        p.image = path; render();
+        st.textContent = "Фото загружено ✓ — не забудь «Опубликовать»"; st.className = "status ok";
+      } catch(e){
+        btn.disabled = false; btn.textContent = p.image ? "Заменить фото" : "Загрузить фото";
+        st.textContent = "Фото не загружено: " + e.message; st.className = "status err";
+      }
+    })();
+  });
+
+  return el;
+}
+
+function renderVariant(p, v, vi){
+  const row = document.createElement("div");
+  row.className = "variant-row";
+  row.innerHTML = `
+    <div class="field sm"><label>Объём</label><input data-vf="volume" type="number" value="${v.volume}" placeholder="50" /></div>
+    <div class="field sm"><label>Ед.</label><input data-vf="unit" type="text" value="${escapeAttr(v.unit||'мл')}" /></div>
+    <div class="field grow"><label>Цена, ₽</label><input data-vf="price" type="number" value="${v.price}" placeholder="6500" /></div>
+    <button class="icon-btn danger" data-vdel title="Убрать">✕</button>
+  `;
+  row.querySelectorAll('[data-vf]').forEach(inp=>{
+    inp.addEventListener("input", ()=>{
+      const f = inp.dataset.vf;
+      v[f] = (f==="unit") ? inp.value : (inp.value === "" ? "" : Number(inp.value));
+      updateJson();
+    });
+  });
+  row.querySelector('[data-vdel]').addEventListener("click", ()=>{
+    p.variants.splice(vi,1);
+    if (p.variants.length===0) p.variants.push({volume:"",unit:"мл",price:""});
+    render();
+  });
+  return row;
+}
+
+/* ---------- сериализация / валидация ---------- */
+function buildOutput(){
+  return {
+    shop: {
+      title: model.shop.title.trim() || "Парфюмерия",
+      subtitle: model.shop.subtitle.trim()
+    },
+    products: model.products.map(p=>({
+      id: (p.id && p.id.trim()) ? p.id.trim() : autoId(p),
+      brand: p.brand.trim(),
+      name: p.name.trim(),
+      gender: p.gender,
+      notes: { top: p.notesTop || [], heart: p.notesHeart || [], base: p.notesBase || [] },
+      description: (p.description||"").trim(),
+      image: (p.image||"").trim(),
+      preorder: !!p.preorder,
+      variants: (p.variants||[])
+        .filter(v => v.price !== "" && v.volume !== "")
+        .map(v=>({ volume: Number(v.volume), unit: (v.unit||"мл").trim(), price: Number(v.price) }))
+    }))
+  };
+}
+
+function validate(out){
+  const errs = [];
+  const ids = {};
+  out.products.forEach((p,i)=>{
+    const tag = `Товар #${i+1}`;
+    if (!p.brand) errs.push(`${tag}: нет бренда`);
+    if (!p.name) errs.push(`${tag}: нет названия`);
+    if (!p.variants.length) errs.push(`${tag} (${p.brand} ${p.name}): нет ни одного объёма с ценой`);
+    if (ids[p.id]) errs.push(`Повтор id "${p.id}"`); else ids[p.id]=1;
+  });
+  return errs;
+}
+
+function updateJson(){
+  const out = buildOutput();
+  document.getElementById("jsonPreview").textContent = JSON.stringify(out, null, 2);
+  const errs = validate(out);
+  const st = document.getElementById("status");
+  if (!out.products.length){ st.textContent = "Каталог пуст"; st.className="status"; }
+  else if (errs.length){ st.textContent = "⚠ " + errs[0] + (errs.length>1?` (+${errs.length-1})`:""); st.className="status err"; }
+  else { st.textContent = `✓ Готово: ${out.products.length} товаров`; st.className="status ok"; }
+  return out;
+}
+
+/* ---------- IO ---------- */
+function download(){
+  const out = updateJson();
+  const errs = validate(out);
+  if (errs.length && !confirm("Есть предупреждения:\n\n"+errs.join("\n")+"\n\nВсё равно скачать?")) return;
+  const blob = new Blob([JSON.stringify(out, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "catalog.json";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(a.href);
+}
+function copyJson(){
+  const out = JSON.stringify(buildOutput(), null, 2);
+  navigator.clipboard.writeText(out).then(
+    ()=>{ const st=document.getElementById("status"); st.textContent="Скопировано в буфер"; st.className="status ok"; },
+    ()=>alert("Не удалось скопировать")
+  );
+}
+function applyLoaded(data){
+  model.shop = { title: (data.shop&&data.shop.title)||"Парфюмерия", subtitle:(data.shop&&data.shop.subtitle)||"" };
+  model.products = (data.products||[]).map(p=>{
+    const n = p.notes;
+    let top=[], heart=[], base=[];
+    if (Array.isArray(n)) heart = n;                       // старый плоский формат → в «сердце»
+    else if (n && typeof n==="object") { top=n.top||[]; heart=n.heart||[]; base=n.base||[]; }
+    return {
+      id:p.id||"", brand:p.brand||"", name:p.name||"", gender:GENDERS.includes(p.gender)?p.gender:"унисекс",
+      notesTop:top, notesHeart:heart, notesBase:base,
+      description:p.description||"", image:p.image||"", preorder:!!p.preorder,
+      variants:(p.variants&&p.variants.length?p.variants:[{volume:"",unit:"мл",price:""}])
+    };
+  });
+  render();
+}
+async function loadFromGitHub(){
+  const st = document.getElementById("status");
+  st.textContent = "Загружаю каталог…"; st.className = "status";
+  try {
+    const f = await ghGet("catalog.json");
+    catalogSha = f.sha;
+    applyLoaded(JSON.parse(f.text));
+    st.textContent = `Каталог загружен ✓ (${model.products.length} товаров)`; st.className = "status ok";
+    return true;
+  } catch(e){
+    st.textContent = "Не удалось загрузить: " + e.message; st.className = "status err";
+    return false;
+  }
+}
+
+async function publish(){
+  const out = updateJson();
+  const errs = validate(out);
+  if (errs.length && !confirm("Есть предупреждения:\n\n"+errs.join("\n")+"\n\nВсё равно опубликовать?")) return;
+  const st = document.getElementById("status"), btn = document.getElementById("publishBtn");
+  try {
+    btn.disabled = true; st.textContent = "Публикую…"; st.className = "status";
+    const res = await ghPut("catalog.json", utf8ToB64(JSON.stringify(out, null, 2) + "\n"),
+                            `admin: каталог (${out.products.length} товаров)`, catalogSha);
+    catalogSha = res.content.sha;
+    st.textContent = "Опубликовано ✓ — в боте обновится примерно через минуту"; st.className = "status ok";
+  } catch(e){
+    st.textContent = "Не опубликовано: " + e.message; st.className = "status err";
+  } finally { btn.disabled = false; }
+}
+
+/* ---------- escape ---------- */
+function escapeHtml(s){ return (s||"").replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function escapeAttr(s){ return (s||"").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ---------- wiring ---------- */
+document.getElementById("shopTitle").addEventListener("input", e=>{ model.shop.title=e.target.value; updateJson(); });
+document.getElementById("shopSubtitle").addEventListener("input", e=>{ model.shop.subtitle=e.target.value; updateJson(); });
+document.getElementById("addProd").addEventListener("click", ()=>{ model.products.push(blankProduct()); render(); window.scrollTo(0,document.body.scrollHeight); });
+document.getElementById("downloadBtn").addEventListener("click", download);
+document.getElementById("loadBtn").addEventListener("click", ()=>{
+  if (confirm("Загрузить каталог с сайта заново? Неопубликованные изменения пропадут.")) loadFromGitHub();
+});
+document.getElementById("publishBtn").onclick = publish;
+
+/* ---------- вход по ключу ---------- */
+function setLocked(locked){
+  document.body.classList.toggle("locked", locked);
+  document.getElementById("ghToken").parentElement.parentElement.classList.toggle("hidden", !locked);
+  document.getElementById("tokenSave").classList.toggle("hidden", !locked);
+  document.getElementById("tokenForget").classList.toggle("hidden", locked);
+  document.getElementById("tokenInfo").textContent = locked
+    ? "Ключ хранится только в этом браузере." : "Вход выполнен. Ключ сохранён в этом браузере.";
+}
+document.getElementById("tokenSave").onclick = async ()=>{
+  const t = document.getElementById("ghToken").value.trim();
+  if (!t) return;
+  setToken(t);
+  if (await loadFromGitHub()) { document.getElementById("ghToken").value = ""; setLocked(false); }
+  else setToken("");
+};
+document.getElementById("tokenForget").onclick = ()=>{
+  if (!confirm("Выйти и забыть ключ на этом устройстве?")) return;
+  setToken(""); model.products = []; render(); setLocked(true);
+};
+
+(async function init(){
+  render();
+  if (getToken() && await loadFromGitHub()) setLocked(false);
+  else setLocked(true);
+})();
+</script>
+</body>
+</html>
