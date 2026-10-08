@@ -226,7 +226,9 @@ body::after {
 .card-notes .note-group { color: var(--text); font-weight: 700; text-transform: uppercase; font-size: .74rem; letter-spacing: .04em; }
 .view-grid .card-notes { display: none; }
 
-.card-desc { font-size: .85rem; color: var(--text-muted); line-height: 1.5; white-space: pre-line; margin: 2px 0 var(--space-1); }
+/* в списке — только 3 строки, полный текст в детальной карточке */
+.card-desc { font-size: .85rem; color: var(--text-muted); line-height: 1.5; margin: 2px 0 var(--space-1);
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
 .view-grid .card-desc { display: none; }
 
 /* variants */
