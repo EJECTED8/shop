@@ -67,6 +67,8 @@
   .preorder-toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; padding: 10px 12px; background: #fff7e6; border: 1px solid #ffe0a3; border-radius: 10px; width: 100%; }
   .preorder-toggle input { width: 18px; height: 18px; flex: 0 0 auto; cursor: pointer; }
   .preorder-toggle span { color: #7a5b12; }
+  .arabic-toggle { background: #eef6ff; border-color: #c9e0fb; margin-top: 8px; }
+  .arabic-toggle span { color: #1f4f86; }
 
   .photo-row { display: flex; gap: 12px; align-items: center; }
   .photo-preview { width: 84px; height: 84px; flex: 0 0 auto; border-radius: 10px; border: 1px solid var(--line); background: #f0f2f6; overflow: hidden; display: flex; align-items: center; justify-content: center; color: var(--hint); font-size: 12px; text-align: center; }
@@ -214,7 +216,7 @@ function autoId(p){
 
 /* ---------- рендер ---------- */
 function blankProduct(){
-  return { id:"", brand:"", name:"", gender:"унисекс", notesTop:[], notesHeart:[], notesBase:[], description:"", image:"", preorder:false,
+  return { id:"", brand:"", name:"", gender:"унисекс", notesTop:[], notesHeart:[], notesBase:[], description:"", image:"", preorder:false, arabic:false,
     variants:[ { volume:"", unit:"мл", price:"" } ] };
 }
 
@@ -277,6 +279,12 @@ function renderProduct(p, pi){
         <span>Предзаказ — товара сейчас нет в наличии (в витрине покажется плашка «Предзаказ»)</span>
       </label>
     </div>
+    <div class="row">
+      <label class="preorder-toggle arabic-toggle">
+        <input data-f="arabic" type="checkbox" ${p.arabic ? 'checked' : ''} />
+        <span>Арабская парфюмерия — товар попадёт во вкладку «арабская»</span>
+      </label>
+    </div>
     <div class="variants">
       <label>Объёмы и цены *</label>
       <div class="variant-list"></div>
@@ -291,6 +299,7 @@ function renderProduct(p, pi){
       if (f === "notesTop" || f === "notesHeart" || f === "notesBase")
         p[f] = inp.value.split(",").map(s=>s.trim()).filter(Boolean);
       else if (f === "preorder") p.preorder = inp.checked;
+      else if (f === "arabic") p.arabic = inp.checked;
       else p[f] = inp.value;
       // обновить заголовок и json без полного ререндера
       el.querySelector(".prod-title .mut").textContent = (p.brand||"") + " " + (p.name||"");
@@ -384,6 +393,7 @@ function buildOutput(){
       description: (p.description||"").trim(),
       image: (p.image||"").trim(),
       preorder: !!p.preorder,
+      arabic: !!p.arabic,
       variants: (p.variants||[])
         .filter(v => v.price !== "" && v.volume !== "")
         .map(v=>({ volume: Number(v.volume), unit: (v.unit||"мл").trim(), price: Number(v.price) }))
@@ -444,7 +454,7 @@ function applyLoaded(data){
     return {
       id:p.id||"", brand:p.brand||"", name:p.name||"", gender:GENDERS.includes(p.gender)?p.gender:"унисекс",
       notesTop:top, notesHeart:heart, notesBase:base,
-      description:p.description||"", image:p.image||"", preorder:!!p.preorder,
+      description:p.description||"", image:p.image||"", preorder:!!p.preorder, arabic:!!p.arabic,
       variants:(p.variants&&p.variants.length?p.variants:[{volume:"",unit:"мл",price:""}])
     };
   });

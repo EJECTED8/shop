@@ -32,9 +32,13 @@ function imgUrl(src) { return src ? src + (src.includes("?") ? "&" : "?") + "i="
 let showFaves = false;
 let activeBrand = "все";
 
-// унисекс попадает и в мужской, и в женский раздел
+const ARABIC = "арабская";
+
+// унисекс попадает и в мужской, и в женский раздел;
+// арабские ароматы видны и во вкладке «арабская», и в обычных по полу
 function genderMatch(p) {
   if (activeFilter === "все") return true;
+  if (activeFilter === ARABIC) return !!p.arabic;
   if (activeFilter === "муж") return p.gender === "муж" || p.gender === "унисекс";
   if (activeFilter === "жен") return p.gender === "жен" || p.gender === "унисекс";
   return p.gender === activeFilter; // "унисекс" → только унисекс
@@ -99,8 +103,11 @@ function renderFilters() {
   const genders = [
     "все",
     ...ORDER.filter(g => present.has(g)),
-    ...[...present].filter(g => !ORDER.includes(g))
+    ...[...present].filter(g => !ORDER.includes(g)),
+    // вкладка арабской парфюмерии — только если в каталоге есть такие товары
+    ...(CATALOG.some(p => p.arabic) ? [ARABIC] : [])
   ];
+  if (!genders.includes(activeFilter)) activeFilter = "все";
   const box = document.getElementById("filters");
   box.innerHTML = "";
   genders.forEach(g => {
